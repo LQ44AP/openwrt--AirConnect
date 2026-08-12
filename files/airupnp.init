@@ -6,7 +6,6 @@ STOP=10
 
 # 默认参数（如果需要可在此添加配置参数，如 -Z 或 -l 等）
 UPNP_ARGS=""
-CAST_ARGS=""
 
 start_service() {
 	# 启动 airupnp 服务（UPnP/Sonos 桥接）
