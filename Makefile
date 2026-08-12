@@ -10,6 +10,7 @@ PKG_SOURCE_VERSION:=$(PKG_VERSION)
 PKG_MIRROR_HASH:=skip
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_SOURCE_SUBMODULES:=1
 
 PKG_MAINTAINER:=Philippe <philippe_44@outlook.com>
 PKG_LICENSE:=MIT
@@ -33,7 +34,7 @@ define Package/aircast
   DEPENDS:=+libpthread +libopenssl +libnghttp2 +libflac +libsoxr +libatomic
 endef
 
-# 头文件路径（对齐 AirConnect 子模块真实目录）
+# 头文件包含路径
 TARGET_CPPFLAGS += \
 	-I$(PKG_BUILD_DIR)/crosstools/src \
 	-I$(PKG_BUILD_DIR)/libraop/src \
@@ -42,7 +43,7 @@ TARGET_CPPFLAGS += \
 	-I$(STAGING_DIR)/usr/include/upnp \
 	-I$(STAGING_DIR)/usr/include/ixml
 
-# 平台宏与编译选项
+# 编译参数
 TARGET_CFLAGS += \
 	-D_GNU_SOURCE \
 	-DLINUX \
