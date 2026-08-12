@@ -46,31 +46,23 @@ TARGET_CFLAGS += \
 	-fdata-sections \
 	$(FPIC)
 
-# 动态获取源码树中所有 include/inc/src 目录作为头文件查找路径
-INCLUDES_DIRS = $(shell find $(PKG_BUILD_DIR) -type d \( -name "inc" -o -name "include" -o -name "src" \) ! -path "*/openssl*" ! -path "*/test*")
-COMMON_INCLUDES = $(patsubst %,-I%,$(INCLUDES_DIRS))
-
-AIRUPNP_INCLUDES := \
-	$(COMMON_INCLUDES) \
-	-I$(STAGING_DIR)/usr/include/upnp \
-	-I$(STAGING_DIR)/usr/include/ixml
-
-AIRCAST_INCLUDES := \
-	$(COMMON_INCLUDES)
-
 define Build/Compile
 	mkdir -p $(PKG_BUILD_DIR)/bin
 
-	# 1. 编译 airupnp: 仅编译各类 src/ 目录下的 C 源文件，排除 aircast、内置 openssl 及 test 目录
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) $(AIRUPNP_INCLUDES) \
-		`find $(PKG_BUILD_DIR) -type f -path "*/src/*.c" ! -path "*/aircast/*" ! -path "*/libopenssl/*" ! -path "*/openssl/*" ! -path "*/test/*" ! -path "*/bin/*" ! -path "*/build/*"` \
+	# 1. 编译 airupnp: 在执行阶段动态提取所有包含 .h 文件的目录作为 -I 参数
+	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) \
+		`find $(PKG_BUILD_DIR) -type f -name "*.h" ! -path "*/aircast/*" ! -path "*/openssl/*" ! -path "*/test/*" -exec dirname {} + | sort -u | sed 's/^/-I/'` \
+		-I$(STAGING_DIR)/usr/include/upnp \
+		-I$(STAGING_DIR)/usr/include/ixml \
+		`find $(PKG_BUILD_DIR) -type f -name "*.c" ! -path "*/aircast/*" ! -path "*/libopenssl/*" ! -path "*/openssl/*" ! -path "*/test/*" ! -path "*/bin/*" ! -path "*/build/*"` \
 		-o $(PKG_BUILD_DIR)/bin/airupnp \
 		$(TARGET_LDFLAGS) \
 		-lupnp -lixml -lssl -lcrypto -lpthread -lsoxr -lFLAC -latomic -lm
 
-	# 2. 编译 aircast: 仅编译各类 src/ 目录下的 C 源文件，排除 airupnp、内置 openssl 及 test 目录
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) $(AIRCAST_INCLUDES) \
-		`find $(PKG_BUILD_DIR) -type f -path "*/src/*.c" ! -path "*/airupnp/*" ! -path "*/libopenssl/*" ! -path "*/openssl/*" ! -path "*/test/*" ! -path "*/bin/*" ! -path "*/build/*"` \
+	# 2. 编译 aircast
+	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) \
+		`find $(PKG_BUILD_DIR) -type f -name "*.h" ! -path "*/airupnp/*" ! -path "*/openssl/*" ! -path "*/test/*" -exec dirname {} + | sort -u | sed 's/^/-I/'` \
+		`find $(PKG_BUILD_DIR) -type f -name "*.c" ! -path "*/airupnp/*" ! -path "*/libopenssl/*" ! -path "*/openssl/*" ! -path "*/test/*" ! -path "*/bin/*" ! -path "*/build/*"` \
 		-o $(PKG_BUILD_DIR)/bin/aircast \
 		$(TARGET_LDFLAGS) \
 		-lssl -lcrypto -lpthread -lsoxr -lFLAC -latomic -lm
