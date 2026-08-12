@@ -10,22 +10,11 @@ CAST_ARGS=""
 
 start_service() {
 	# 启动 airupnp 服务（UPnP/Sonos 桥接）
-	if [ -x "/usr/bin/airupnp" ]; then
+		[ -x "/usr/bin/airupnp" ]; then
 		procd_open_instance airupnp
 		procd_set_param command /usr/bin/airupnp $UPNP_ARGS
 		procd_set_param respawn
 		procd_set_param stdout 1
 		procd_set_param stderr 1
 		procd_close_instance
-	fi
-
-	# 启动 aircast 服务（Chromecast 桥接）
-	if [ -x "/usr/bin/aircast" ]; then
-		procd_open_instance aircast
-		procd_set_param command /usr/bin/aircast $CAST_ARGS
-		procd_set_param respawn
-		procd_set_param stdout 1
-		procd_set_param stderr 1
-		procd_close_instance
-	fi
 }
