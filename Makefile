@@ -50,13 +50,17 @@ endef
 
 define Package/airconnect/install
 	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_DIR) $(1)/etc/init.d
 
-	# 优先安装源码编译出的目标文件
+	# 安装二进制文件
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/airupnp/bin/airupnp $(1)/usr/bin/airupnp 2>/dev/null || \
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/airupnp/airupnp $(1)/usr/bin/airupnp 2>/dev/null || true
 
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/aircast/bin/aircast $(1)/usr/bin/aircast 2>/dev/null || \
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/aircast/aircast $(1)/usr/bin/aircast 2>/dev/null || true
+
+	# 安装 init.d 启动脚本
+	$(INSTALL_BIN) ./files/airconnect.init $(1)/etc/init.d/airconnect
 endef
 
 $(eval $(call BuildPackage,airconnect))
