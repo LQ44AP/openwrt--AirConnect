@@ -41,68 +41,39 @@ TARGET_CFLAGS += \
 	-DNDEBUG \
 	-DLOOPBACK_AUDIO \
 	-DNO_EXTERNAL_CONFIG \
+	-Wno-deprecated-declarations \
 	-ffunction-sections \
 	-fdata-sections \
 	$(FPIC)
 
-# 全局头文件搜索路径 (覆盖所有可能存在的子模块与上游库路径)
-COMMON_INCLUDES := \
-	-I$(PKG_BUILD_DIR) \
-	-I$(PKG_BUILD_DIR)/tools \
-	-I$(PKG_BUILD_DIR)/tools/inc \
-	-I$(PKG_BUILD_DIR)/tools/src \
-	-I$(PKG_BUILD_DIR)/c-tools \
-	-I$(PKG_BUILD_DIR)/c-tools/inc \
-	-I$(PKG_BUILD_DIR)/c_tools \
-	-I$(PKG_BUILD_DIR)/c_tools/inc \
-	-I$(PKG_BUILD_DIR)/libcodecs/include \
-	-I$(PKG_BUILD_DIR)/libcodecs/src \
-	-I$(PKG_BUILD_DIR)/c_codecs/include \
-	-I$(PKG_BUILD_DIR)/c_codecs/src \
-	-I$(PKG_BUILD_DIR)/libraop/src \
-	-I$(PKG_BUILD_DIR)/libmdns/src
+# 动态获取源码树中所有 include/inc/src 目录作为头文件查找路径
+INCLUDES_DIRS = $(shell find $(PKG_BUILD_DIR) -type d \( -name "inc" -o -name "include" -o -name "src" \) ! -path "*/openssl*" ! -path "*/test*")
+COMMON_INCLUDES = $(patsubst %,-I%,$(INCLUDES_DIRS))
 
 AIRUPNP_INCLUDES := \
 	$(COMMON_INCLUDES) \
-	-I$(PKG_BUILD_DIR)/airupnp/src \
-	-I$(PKG_BUILD_DIR)/airupnp/src/inc \
 	-I$(STAGING_DIR)/usr/include/upnp \
 	-I$(STAGING_DIR)/usr/include/ixml
 
 AIRCAST_INCLUDES := \
-	$(COMMON_INCLUDES) \
-	-I$(PKG_BUILD_DIR)/aircast/src \
-	-I$(PKG_BUILD_DIR)/aircast/src/inc
+	$(COMMON_INCLUDES)
 
 define Build/Compile
 	mkdir -p $(PKG_BUILD_DIR)/bin
 
-	# 1. 编译 airupnp (注意 $(TARGET_CC) 与 $(TARGET_CFLAGS) 之间必须有空格)
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) \
-		-D_GNU_SOURCE -DLINUX -DPOSIX -DNDEBUG -DLOOPBACK_AUDIO -DNO_EXTERNAL_CONFIG \
-		-ffunction-sections -fdata-sections \
-		-I$(PKG_BUILD_DIR) \
-		-I$(PKG_BUILD_DIR)/tools \
-		-I$(PKG_BUILD_DIR)/tools/inc \
-		-I$(PKG_BUILD_DIR)/tools/src \
-		-I$(PKG_BUILD_DIR)/c-tools \
-		-I$(PKG_BUILD_DIR)/c-tools/inc \
-		-I$(PKG_BUILD_DIR)/c_tools \
-		-I$(PKG_BUILD_DIR)/c_tools/inc \
-		-I$(PKG_BUILD_DIR)/libcodecs/include \
-		-I$(PKG_BUILD_DIR)/libcodecs/src \
-		-I$(PKG_BUILD_DIR)/c_codecs/include \
-		-I$(PKG_BUILD_DIR)/c_codecs/src \
-		-I$(PKG_BUILD_DIR)/libraop/src \
-		-I$(PKG_BUILD_DIR)/libmdns/src \
-		-I$(PKG_BUILD_DIR)/airupnp/src \
-		-I$(PKG_BUILD_DIR)/airupnp/src/inc \
-		-I$(STAGING_DIR)/usr/include/upnp \
-		-I$(STAGING_DIR)/usr/include/ixml \
-		`find $(PKG_BUILD_DIR) -type f -name "*.c" ! -path "*/aircast/*" ! -path "*/bin/*" ! -path "*/build/*"` \
+	# 1. 编译 airupnp: 仅编译各类 src/ 目录下的 C 源文件，排除 aircast、内置 openssl 及 test 目录
+	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) $(AIRUPNP_INCLUDES) \
+		`find $(PKG_BUILD_DIR) -type f -path "*/src/*.c" ! -path "*/aircast/*" ! -path "*/libopenssl/*" ! -path "*/openssl/*" ! -path "*/test/*" ! -path "*/bin/*" ! -path "*/build/*"` \
 		-o $(PKG_BUILD_DIR)/bin/airupnp \
 		$(TARGET_LDFLAGS) \
 		-lupnp -lixml -lssl -lcrypto -lpthread -lsoxr -lFLAC -latomic -lm
+
+	# 2. 编译 aircast: 仅编译各类 src/ 目录下的 C 源文件，排除 airupnp、内置 openssl 及 test 目录
+	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) $(AIRCAST_INCLUDES) \
+		`find $(PKG_BUILD_DIR) -type f -path "*/src/*.c" ! -path "*/airupnp/*" ! -path "*/libopenssl/*" ! -path "*/openssl/*" ! -path "*/test/*" ! -path "*/bin/*" ! -path "*/build/*"` \
+		-o $(PKG_BUILD_DIR)/bin/aircast \
+		$(TARGET_LDFLAGS) \
+		-lssl -lcrypto -lpthread -lsoxr -lFLAC -latomic -lm
 endef
 
 define Package/airupnp/install
