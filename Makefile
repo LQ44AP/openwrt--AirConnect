@@ -23,7 +23,7 @@ define Package/airupnp
   CATEGORY:=Network
   TITLE:=AirPlay to UPnP/Sonos bridge
   URL:=https://github.com/philippe44/AirConnect
-  DEPENDS:=+libpthread +libopenssl +libnghttp2 +libupnp +libflac +libsoxr +libatomic
+  DEPENDS:=+libpthread +libopenssl +libupnp +libflac +libsoxr +libatomic
 endef
 
 define Package/aircast
@@ -31,7 +31,7 @@ define Package/aircast
   CATEGORY:=Network
   TITLE:=AirPlay to Chromecast bridge
   URL:=https://github.com/philippe44/AirConnect
-  DEPENDS:=+libpthread +libopenssl +libnghttp2 +libflac +libsoxr +libatomic
+  DEPENDS:=+libpthread +libopenssl +libflac +libsoxr +libatomic
 endef
 
 TARGET_CFLAGS += \
@@ -45,37 +45,48 @@ TARGET_CFLAGS += \
 	-fdata-sections \
 	$(FPIC)
 
-# airupnp 源码与头文件集合
+# 全局头文件搜索路径 (覆盖所有可能存在的子模块与上游库路径)
+COMMON_INCLUDES := \
+	-I$(PKG_BUILD_DIR) \
+	-I$(PKG_BUILD_DIR)/tools \
+	-I$(PKG_BUILD_DIR)/tools/inc \
+	-I$(PKG_BUILD_DIR)/tools/src \
+	-I$(PKG_BUILD_DIR)/c-tools \
+	-I$(PKG_BUILD_DIR)/c-tools/inc \
+	-I$(PKG_BUILD_DIR)/c_tools \
+	-I$(PKG_BUILD_DIR)/c_tools/inc \
+	-I$(PKG_BUILD_DIR)/libcodecs/include \
+	-I$(PKG_BUILD_DIR)/libcodecs/src \
+	-I$(PKG_BUILD_DIR)/c_codecs/include \
+	-I$(PKG_BUILD_DIR)/c_codecs/src \
+	-I$(PKG_BUILD_DIR)/libraop/src \
+	-I$(PKG_BUILD_DIR)/libmdns/src
+
 AIRUPNP_INCLUDES := \
+	$(COMMON_INCLUDES) \
 	-I$(PKG_BUILD_DIR)/airupnp/src \
 	-I$(PKG_BUILD_DIR)/airupnp/src/inc \
-	-I$(PKG_BUILD_DIR)/tools \
-	-I$(PKG_BUILD_DIR)/c_tools \
-	-I$(PKG_BUILD_DIR)/c_codecs \
 	-I$(STAGING_DIR)/usr/include/upnp \
 	-I$(STAGING_DIR)/usr/include/ixml
 
-# aircast 源码与头文件集合
 AIRCAST_INCLUDES := \
+	$(COMMON_INCLUDES) \
 	-I$(PKG_BUILD_DIR)/aircast/src \
-	-I$(PKG_BUILD_DIR)/aircast/src/inc \
-	-I$(PKG_BUILD_DIR)/tools \
-	-I$(PKG_BUILD_DIR)/c_tools \
-	-I$(PKG_BUILD_DIR)/c_codecs
+	-I$(PKG_BUILD_DIR)/aircast/src/inc
 
 define Build/Compile
 	mkdir -p $(PKG_BUILD_DIR)/bin
 
-	# 1. 编译 airupnp (自动查找 airupnp 及其子模块下所有 .c 源文件)
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) $(AIRUPNP_INCLUDES) \
-		$$(find $(PKG_BUILD_DIR)/airupnp/src $(PKG_BUILD_DIR)/tools $(PKG_BUILD_DIR)/c_tools $(PKG_BUILD_DIR)/c_codecs -maxdepth 2 -name "*.c" 2>/dev/null) \
+	# 1. 编译 airupnp (编译所有公共组件与 airupnp 源码，排除 aircast)
+	$(TARGET_CC)$(TARGET_CFLAGS) $(TARGET_CPPFLAGS)$(AIRUPNP_INCLUDES) \
+		`find $(PKG_BUILD_DIR) -type f -name "*.c" ! -path "*/aircast/*" ! -path "*/bin/*" ! -path "*/build/*"` \
 		-o $(PKG_BUILD_DIR)/bin/airupnp \
 		$(TARGET_LDFLAGS) \
 		-lupnp -lixml -lssl -lcrypto -lpthread -lsoxr -lFLAC -latomic -lm
 
-	# 2. 编译 aircast (自动查找 aircast 及其子模块下所有 .c 源文件)
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) $(AIRCAST_INCLUDES) \
-		$$(find $(PKG_BUILD_DIR)/aircast/src $(PKG_BUILD_DIR)/tools $(PKG_BUILD_DIR)/c_tools $(PKG_BUILD_DIR)/c_codecs -maxdepth 2 -name "*.c" 2>/dev/null) \
+	# 2. 编译 aircast (编译所有公共组件与 aircast 源码，排除 airupnp)
+	$(TARGET_CC)$(TARGET_CFLAGS) $(TARGET_CPPFLAGS)$(AIRCAST_INCLUDES) \
+		`find $(PKG_BUILD_DIR) -type f -name "*.c" ! -path "*/airupnp/*" ! -path "*/bin/*" ! -path "*/build/*"` \
 		-o $(PKG_BUILD_DIR)/bin/aircast \
 		$(TARGET_LDFLAGS) \
 		-lssl -lcrypto -lpthread -lsoxr -lFLAC -latomic -lm
