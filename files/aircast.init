@@ -10,7 +10,7 @@ CAST_ARGS=""
 
 start_service() {
 	# 启动 aircast 服务（Chromecast 桥接）
-		[ -x "/usr/bin/aircast" ]; then
+		[ -x "/usr/bin/aircast" ] || return 1
 		procd_open_instance aircast
 		procd_set_param command /usr/bin/aircast $CAST_ARGS
 		procd_set_param respawn
