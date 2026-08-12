@@ -59,11 +59,11 @@ jobs:
       - name: Compile AirConnect
         working-directory: sdk
         run: |
-          # 启用拆分后的 airupnp 和 aircast 编译配置
           echo "CONFIG_PACKAGE_airupnp=m" >> .config
           echo "CONFIG_PACKAGE_aircast=m" >> .config
           make defconfig
-          # 编译 airconnect 目录（自动产出两个包）
+          # 先单独下载源码与子模块，避免并行编译时下载竞争
+          make package/airconnect/download V=s
           make package/airconnect/compile V=s -j$(nproc)
 
       - name: Collect IPK artifacts
