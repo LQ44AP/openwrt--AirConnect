@@ -13,21 +13,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # MIPS Little Endian (MT7621 / MT7620 等)
-          - target: ramips/mt7621
-            arch: mipsel_24kc
-            sdk_url: "https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt7621/openwrt-sdk-23.05.3-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.zst"
+          - arch: mipsel_24kc
+            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt7621/openwrt-sdk-23.05.6-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           
-          # ARM64 (斐讯 N1 / 友善 R2S/R4S / 树莓派 等)
-          - target: rockchip/armv8
-            arch: aarch64_generic
-            sdk_url: "https://downloads.openwrt.org/releases/23.05.6/targets/rockchip/armv8/openwrt-sdk-23.05.3-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.zst"
-          
-          # x86_64 (软路由 / 虚拟机)
-          - target: x86/64
-            arch: x86_64
-            sdk_url: "https://downloads.openwrt.org/releases/23.05.6/targets/x86/64/openwrt-sdk-23.05.3-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.zst"
+          - arch: mips_24kc
+            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/ath79/generic/openwrt-sdk-23.05.6-ath79-generic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            
+          - arch: x86_64
+            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/x86/64/openwrt-sdk-23.05.6-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
 
+          - arch: aarch64_generic
+            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/rockchip/armv8/openwrt-sdk-23.05.6-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,10 +37,9 @@ jobs:
 
       - name: Setup OpenWrt SDK
         run: |
-          wget -qO sdk.tar.zst "${{ matrix.sdk_url }}"
-          mkdir -p sdk
-          tar --zstd -xf sdk.tar.zst -C sdk --strip-components=1
-          rm -f sdk.tar.zst
+          wget -qO sdk.tar.xz "${{ matrix.sdk_url }}"
+          mkdir sdk && tar -xJf sdk.tar.xz -C sdk --strip-components=1
+          rm -f sdk.tar.xz
 
       - name: Setup package feeds & keys
         working-directory: sdk
