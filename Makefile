@@ -34,7 +34,6 @@ define Package/aircast
   DEPENDS:=+libpthread +libopenssl +libnghttp2 +libflac +libsoxr +libatomic
 endef
 
-# 平台宏与头文件定义
 TARGET_CFLAGS += \
 	-D_GNU_SOURCE \
 	-DLINUX \
@@ -46,34 +45,40 @@ TARGET_CFLAGS += \
 	-fdata-sections \
 	$(FPIC)
 
-TARGET_LDFLAGS += \
-	-Wl,--gc-sections \
-	-lssl \
-	-lcrypto \
-	-lpthread \
-	-lsoxr \
-	-lFLAC \
-	-latomic \
-	-lm
+# airupnp 源码与头文件集合
+AIRUPNP_INCLUDES := \
+	-I$(PKG_BUILD_DIR)/airupnp/src \
+	-I$(PKG_BUILD_DIR)/airupnp/src/inc \
+	-I$(PKG_BUILD_DIR)/tools \
+	-I$(PKG_BUILD_DIR)/c_tools \
+	-I$(PKG_BUILD_DIR)/c_codecs \
+	-I$(STAGING_DIR)/usr/include/upnp \
+	-I$(STAGING_DIR)/usr/include/ixml
+
+# aircast 源码与头文件集合
+AIRCAST_INCLUDES := \
+	-I$(PKG_BUILD_DIR)/aircast/src \
+	-I$(PKG_BUILD_DIR)/aircast/src/inc \
+	-I$(PKG_BUILD_DIR)/tools \
+	-I$(PKG_BUILD_DIR)/c_tools \
+	-I$(PKG_BUILD_DIR)/c_codecs
 
 define Build/Compile
 	mkdir -p $(PKG_BUILD_DIR)/bin
 
-	# 1. 编译 airupnp (进入 airupnp 源码目录由内置规则构建)
-	$(MAKE) -C $(PKG_BUILD_DIR)/airupnp/src -f Makefile \
-		CC="$(TARGET_CC)" \
-		CFLAGS="$(TARGET_CFLAGS) $(TARGET_CPPFLAGS) -I$(STAGING_DIR)/usr/include/upnp -I$(STAGING_DIR)/usr/include/ixml" \
-		LDFLAGS="$(TARGET_LDFLAGS) -lupnp -lixml" \
-		BUILD_DIR="$(PKG_BUILD_DIR)/bin" \
-		EXECUTABLE="$(PKG_BUILD_DIR)/bin/airupnp"
+	# 1. 编译 airupnp (自动查找 airupnp 及其子模块下所有 .c 源文件)
+	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) $(AIRUPNP_INCLUDES) \
+		$$(find $(PKG_BUILD_DIR)/airupnp/src $(PKG_BUILD_DIR)/tools $(PKG_BUILD_DIR)/c_tools $(PKG_BUILD_DIR)/c_codecs -maxdepth 2 -name "*.c" 2>/dev/null) \
+		-o $(PKG_BUILD_DIR)/bin/airupnp \
+		$(TARGET_LDFLAGS) \
+		-lupnp -lixml -lssl -lcrypto -lpthread -lsoxr -lFLAC -latomic -lm
 
-	# 2. 编译 aircast (进入 aircast 源码目录由内置规则构建)
-	$(MAKE) -C $(PKG_BUILD_DIR)/aircast/src -f Makefile \
-		CC="$(TARGET_CC)" \
-		CFLAGS="$(TARGET_CFLAGS) $(TARGET_CPPFLAGS)" \
-		LDFLAGS="$(TARGET_LDFLAGS)" \
-		BUILD_DIR="$(PKG_BUILD_DIR)/bin" \
-		EXECUTABLE="$(PKG_BUILD_DIR)/bin/aircast"
+	# 2. 编译 aircast (自动查找 aircast 及其子模块下所有 .c 源文件)
+	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) $(AIRCAST_INCLUDES) \
+		$$(find $(PKG_BUILD_DIR)/aircast/src $(PKG_BUILD_DIR)/tools $(PKG_BUILD_DIR)/c_tools $(PKG_BUILD_DIR)/c_codecs -maxdepth 2 -name "*.c" 2>/dev/null) \
+		-o $(PKG_BUILD_DIR)/bin/aircast \
+		$(TARGET_LDFLAGS) \
+		-lssl -lcrypto -lpthread -lsoxr -lFLAC -latomic -lm
 endef
 
 define Package/airupnp/install
