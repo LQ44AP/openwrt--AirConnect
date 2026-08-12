@@ -21,7 +21,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/airupnp
   SECTION:=net
   CATEGORY:=Network
-  TITLE:=AirPlay to UPnP/Sonos bridge (Built from source)
+  TITLE:=AirPlay to UPnP/Sonos bridge
   URL:=https://github.com/philippe44/AirConnect
   DEPENDS:=+libpthread +libopenssl +libnghttp2 +libupnp +libflac +libsoxr +libatomic
 endef
@@ -29,21 +29,12 @@ endef
 define Package/aircast
   SECTION:=net
   CATEGORY:=Network
-  TITLE:=AirPlay to Chromecast bridge (Built from source)
+  TITLE:=AirPlay to Chromecast bridge
   URL:=https://github.com/philippe44/AirConnect
   DEPENDS:=+libpthread +libopenssl +libnghttp2 +libflac +libsoxr +libatomic
 endef
 
-# 头文件包含路径
-TARGET_CPPFLAGS += \
-	-I$(PKG_BUILD_DIR)/crosstools/src \
-	-I$(PKG_BUILD_DIR)/libraop/src \
-	-I$(PKG_BUILD_DIR)/libmdns/src \
-	-I$(PKG_BUILD_DIR)/libcodecs/include \
-	-I$(STAGING_DIR)/usr/include/upnp \
-	-I$(STAGING_DIR)/usr/include/ixml
-
-# 编译参数
+# 平台宏与头文件定义
 TARGET_CFLAGS += \
 	-D_GNU_SOURCE \
 	-DLINUX \
@@ -55,7 +46,6 @@ TARGET_CFLAGS += \
 	-fdata-sections \
 	$(FPIC)
 
-# 动态链接库
 TARGET_LDFLAGS += \
 	-Wl,--gc-sections \
 	-lssl \
@@ -69,29 +59,21 @@ TARGET_LDFLAGS += \
 define Build/Compile
 	mkdir -p $(PKG_BUILD_DIR)/bin
 
-	# 1. 编译 airupnp
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) \
-		-I$(PKG_BUILD_DIR)/airupnp/src/inc \
-		-I$(PKG_BUILD_DIR)/airupnp/src \
-		$(PKG_BUILD_DIR)/airupnp/src/*.c \
-		$(PKG_BUILD_DIR)/crosstools/src/*.c \
-		$(PKG_BUILD_DIR)/libraop/src/*.c \
-		$(PKG_BUILD_DIR)/libmdns/src/*.c \
-		$(PKG_BUILD_DIR)/libcodecs/src/*.c \
-		-o $(PKG_BUILD_DIR)/bin/airupnp \
-		$(TARGET_LDFLAGS) -lupnp -lixml
+	# 1. 编译 airupnp (进入 airupnp 源码目录由内置规则构建)
+	$(MAKE) -C $(PKG_BUILD_DIR)/airupnp/src -f Makefile \
+		CC="$(TARGET_CC)" \
+		CFLAGS="$(TARGET_CFLAGS) $(TARGET_CPPFLAGS) -I$(STAGING_DIR)/usr/include/upnp -I$(STAGING_DIR)/usr/include/ixml" \
+		LDFLAGS="$(TARGET_LDFLAGS) -lupnp -lixml" \
+		BUILD_DIR="$(PKG_BUILD_DIR)/bin" \
+		EXECUTABLE="$(PKG_BUILD_DIR)/bin/airupnp"
 
-	# 2. 编译 aircast
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_CPPFLAGS) \
-		-I$(PKG_BUILD_DIR)/aircast/src/inc \
-		-I$(PKG_BUILD_DIR)/aircast/src \
-		$(PKG_BUILD_DIR)/aircast/src/*.c \
-		$(PKG_BUILD_DIR)/crosstools/src/*.c \
-		$(PKG_BUILD_DIR)/libraop/src/*.c \
-		$(PKG_BUILD_DIR)/libmdns/src/*.c \
-		$(PKG_BUILD_DIR)/libcodecs/src/*.c \
-		-o $(PKG_BUILD_DIR)/bin/aircast \
-		$(TARGET_LDFLAGS)
+	# 2. 编译 aircast (进入 aircast 源码目录由内置规则构建)
+	$(MAKE) -C $(PKG_BUILD_DIR)/aircast/src -f Makefile \
+		CC="$(TARGET_CC)" \
+		CFLAGS="$(TARGET_CFLAGS) $(TARGET_CPPFLAGS)" \
+		LDFLAGS="$(TARGET_LDFLAGS)" \
+		BUILD_DIR="$(PKG_BUILD_DIR)/bin" \
+		EXECUTABLE="$(PKG_BUILD_DIR)/bin/aircast"
 endef
 
 define Package/airupnp/install
