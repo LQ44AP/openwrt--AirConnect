@@ -30,23 +30,22 @@ TARGET_CFLAGS += $(FPIC) -D_GNU_SOURCE
 TARGET_LDFLAGS += -lpthread -lssl -lcrypto -lm
 
 define Build/Compile
-	# 在根目录下直接编译 airupnp 和 aircast
+	# 直接调用顶层 Makefile 的默认目标或自定义构建
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC)" \
 		CXX="$(TARGET_CXX)" \
 		CFLAGS="$(TARGET_CFLAGS)" \
 		LDFLAGS="$(TARGET_LDFLAGS)" \
-		CROSS="$(TARGET_CROSS)" \
-		bin/airupnp bin/aircast
+		CROSS="$(TARGET_CROSS)"
 endef
 
 define Package/airconnect/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/etc/init.d
 
-	# 安装编译好的二进制文件
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bin/airupnp $(1)/usr/bin/airupnp
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bin/aircast $(1)/usr/bin/aircast
+	# 查找并安装编译生成的 airupnp 和 aircast 二进制文件
+	$(INSTALL_BIN) $$(find $(PKG_BUILD_DIR)/bin -name "airupnp*" -type f | head -n 1) $(1)/usr/bin/airupnp
+	$(INSTALL_BIN) $$(find $(PKG_BUILD_DIR)/bin -name "aircast*" -type f | head -n 1) $(1)/usr/bin/aircast
 
 	# 安装 init.d 启动脚本
 	$(INSTALL_BIN) ./files/airconnect.init $(1)/etc/init.d/airconnect
